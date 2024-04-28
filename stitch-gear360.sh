@@ -7,11 +7,14 @@
 
 # Constants
 MLS_MAP_PATH="/usr/share/fisheye-stitcher/grid_xd_yd_3840x1920.yml.gz"
+FFMPEG_OPTS="-hide_banner -hwaccel auto"
 
 help() {
     cat << EOF
 ${FMT_BOLD}Stitching tool for 360° videos captured by the Samsung Gear 360 (SM-C200)${FMT_STD}
 Copyright (c) 2020 Marius Lindvall under the MIT License
+
+Much modification by Turgut Kalfaoglu turgut@kalfaoglu.com to add Samsung Gear 360 2017 (R210) and Sound support
 
 ${FMT_ULINE}Usage:${FMT_STD}
     $0 ${FMT_H_BRACKET}[${FMT_H_PARAM}options${FMT_H_BRACKET}]${FMT_STD} ${FMT_H_PARAM}input1 input2 ${FMT_H_ELLIP}...${FMT_H_PARAM} output${FMT_STD}
@@ -22,14 +25,9 @@ ${FMT_ULINE}Options:${FMT_STD}
     ${FMT_H_ARG}-l${FMT_STD}, ${FMT_H_ARG}--compensate-light${FMT_STD}  Enable light compensation.
 
 Valid input files are one or more .mp4 videos in 3840x1920 resolution from the
-SM-C200. Other 360° cameras including the Gear 360 (2017), and other video
-resolutions from the SM-C200, are not supported. Passing other input videos to
-this program will result in an error. Note that if you have renamed your 360°
-video file, it will be treated as an invalid input file. In such cases, you can
-force this program to load the file anyway using --force.
+SM-R210. It will first resize all input files to the above resolution, and then process them.
 
-If multiple input videos are specified, they will be joined together to one
-long output file.
+If multiple input videos are specified, they will be joined together to one long output file.
 
 The output file must be an .mp4 file.
 EOF
@@ -157,6 +155,8 @@ case "$#" in
 esac
 
 # Validate input files and put them in an array.
+
+mkdir resized
 INPUTS=()
 while test $# -gt 1; do
     echo -n "Validating '$1'... "
@@ -165,26 +165,18 @@ while test $# -gt 1; do
         echo_err "Error: File not found: '$1'"
         exit 1
     fi
-    if [[ ! "$(basename "$1")" =~ 360_[0-9]{4}.MP4$ && "${BYPASS_FNV}" != "true" ]]; then
-        echo_fail
-        echo_err "Error: '$1' is not a valid input file."
-        echo "The filename does not match the format used by the SM-C200." > /dev/stderr
-        echo "You can force allow this file using --force." > /dev/stderr
-        echo "For more info, see $0 --help." > /dev/stderr
-        exit 1
-    fi
-    resolution=$(ffprobe -v error -select_streams v:0 -show_entries \
-        stream=width,height -of csv=s=x:p=0 "$1")
-    if [ "$resolution" != "3840x1920" ]; then
-        echo_fail
-        echo_err "Error: '$1' is not 3840x1920 pixels."
-        echo "This video file is not supported. Cannot continue."
-        exit 1
-    fi
+
     echo_ok
-    INPUTS+=("$1")
+    INPUTS+=("resized/$1")
+    ffmpeg ${FFMPEG_OPTS}  -i $1 -vf scale=3840:1920  -c:a copy resized/$1
     shift
 done
+
+# extract audio
+
+echo_head 1 1 "Extracting audio into tmpsound.mp3"
+rm tmpsound.mp3 2>/dev/null
+ffmpeg ${FFMPEG_OPTS}  -i "$INPUTS" -acodec libmp3lame -b:a 192K -vn tmpsound.mp3
 
 # Validate output filename.
 echo -n "Validating output filename... "
@@ -240,18 +232,28 @@ echo_head 1 1 "Joining videos with ffmpeg..."
 #    -fflags +genpts \ # appears to be buggy
 ffmpeg \
     -f concat \
+    ${FFMPEG_OPTS} \
     -safe 0 \
+    -fflags +genpts  \
     -i "${CACHE_DIR}/ffmpeg-queue.txt" \
-    -c copy "${CACHE_DIR}/ffmpeg-output.mp4"
+    "${CACHE_DIR}/ffmpeg-output.mp4"
 if ! [ $? -eq 0 ]; then
     echo_err "Error: Failed to join videos."
     cleanup
     exit 1
 fi
 
+echo
+echo_head 1 1 "Adding Sound back to resulting file.."
+rm tmpahami.mp4  2> /dev/null
+ffmpeg ${FFMPEG_OPTS} -i "${CACHE_DIR}/ffmpeg-output.mp4" -i tmpsound.mp3 -c copy -map 0:v:0 -map 1:a:0 tmpahami.mp4
+rm "${CACHE_DIR}/ffmpeg-output.mp4"
+mv tmpahami.mp4 "${CACHE_DIR}/ffmpeg-output.mp4"
+rm tmpsound.mp3
+
 # Add 360° video metadata.
 echo_head 1 1 "Injecting spatial metadata..."
-spatialmedia -i "${CACHE_DIR}/ffmpeg-output.mp4" "${OUTPUT}"
+spatialmedia  -i "${CACHE_DIR}/ffmpeg-output.mp4" "${OUTPUT}"
 if ! [ $? -eq 0 ]; then
     echo_err "Error: Failed to inject spatial metadata."
     cleanup
@@ -271,3 +273,4 @@ else
 fi
 
 echo "Stitched video file written to '${OUTPUT}'."
+rm -Rf resized
