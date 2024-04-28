@@ -39,3 +39,5 @@ python -m spatialmedia $@
 ## Thanks
 
 Thanks a lot to drNoob13 for his project fisheyeStitcher. This script is merely a wrapper around that project.
+Likewise thanks to bilde2910 for his original script.
+
