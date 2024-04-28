@@ -24,10 +24,12 @@ ${FMT_ULINE}Options:${FMT_STD}
     ${FMT_H_ARG}-h${FMT_STD}, ${FMT_H_ARG}--help${FMT_STD}              Print this help page and exit.
     ${FMT_H_ARG}-l${FMT_STD}, ${FMT_H_ARG}--compensate-light${FMT_STD}  Enable light compensation.
 
-Valid input files are one or more .mp4 videos in 3840x1920 resolution from the
-SM-R210. It will first resize all input files to the above resolution, and then process them.
+Valid input files are one or more .mp4 videos roughly around  3840x1920 resolution from the
+SM-R210. The script will first resize all input files to the above resolution, and then process them.
 
 If multiple input videos are specified, they will be joined together to one long output file.
+Sound is extracted from the resulting file, and after the stitcher processes them (and appears to remove the sound)
+it is re-added to the file.
 
 The output file must be an .mp4 file.
 EOF
