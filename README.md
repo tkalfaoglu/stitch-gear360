@@ -13,11 +13,10 @@ Stitching tool for 360° videos captured by the Samsung Gear 360 2017 (SM-R210)
     -l, --compensate-light  Enable light compensation.
 
 The resolution of the input files are ignored and rescaled to the correct size that the program expects.
-The sound is extracted from the resulting output, and after the program goes through the fisheyeStitcher,
-the sound is re-added to the file.
+After all the input files are combined, the audio is extracted from the file into a temporary mp3 file.
+After the video goes through the fisheyeStitcher, which removes the audio, it is re-inserted back into the file.
 
-If multiple input videos are specified, they will be joined together to one
-long output file.
+If multiple input videos are specified, they will be joined together to one long output file.
 
 The output file must be an .mp4 file.
 
