@@ -187,7 +187,7 @@ done
 
 echo_head 1 1 "Extracting audio into tmpsound.aac"
 
-rm tmpsound.mp3 2>/dev/null
+rm tmpsound.aac 2>/dev/null
 echo ffmpeg ${FFMPEG_OPTS2} -f concat -safe 0 -i tmpsounds -c copy tmpsound.aac
      ffmpeg ${FFMPEG_OPTS2} -f concat -safe 0 -i tmpsounds -c copy tmpsound.aac
 if ! [ $? -eq 0 ]; then
@@ -265,7 +265,7 @@ echo ffmpeg ${FFMPEG_OPTS} -i "${CACHE_DIR}/ffmpeg-output.mp4" -i tmpsound.aac -
      ffmpeg ${FFMPEG_OPTS} -i "${CACHE_DIR}/ffmpeg-output.mp4" -i tmpsound.aac -c copy -map 0:v:0 -map 1:a:0 tmpahami.mp4
 rm "${CACHE_DIR}/ffmpeg-output.mp4"
 mv tmpahami.mp4 "${CACHE_DIR}/ffmpeg-output.mp4"
-rm tmpsound.mp3
+rm tmpsound.aac
 
 # Add 360° video metadata.
 echo_head 1 1 "Injecting spatial metadata..."
